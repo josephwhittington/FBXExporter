@@ -54,7 +54,7 @@ SimpleMesh simpleMesh;
 MeshHeader header;
 
 // Global strings
-const char* g_asset_directory = "Assets/";
+const char* g_asset_directory = ""; // Prev "Assets/"
 
 
 int main(int argc, char** argv)
