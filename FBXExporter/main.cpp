@@ -112,9 +112,6 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh, const char* inputname, const char*
 	std::cout << inputname << "\n" << outputname << "\n";
 
 	// FBX SHIT
-	// Change the following filename to a suitable filename value.
-	//const char* lFilename = "table.fbx";
-
 	// Initialize the SDK manager. This object handles all our memory management.
 	FbxManager* lSdkManager = FbxManager::Create();
 
@@ -154,7 +151,6 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh, const char* inputname, const char*
 	filename = filename.substr(start, end - start);
 	filename = folder.append(filename).append((std::string)(".dds"));
 	// Fix filename
-
 	// FBX SHIT
 
 	WriteMesh(filename, outputname);
@@ -162,7 +158,6 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh, const char* inputname, const char*
 
 void WriteMesh(std::string texturename, const char* outputname)
 {
-	//const char* filepath = "mesh.mesh";
 	std::ofstream file(outputname, std::ios::trunc | std::ios::binary | std::ios::out);
 
 	// Fill out Header
@@ -230,9 +225,6 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 			for (int j = 0; j < numVertices; j++)
 			{
 				FbxVector4 vert = mesh->GetControlPointAt(j);
-				//simpleMesh.vertexList[j].Pos.x = (float)vert.mData[0] / 50.0f;
-				//simpleMesh.vertexList[j].Pos.y = (float)vert.mData[1] / 50.0f;
-				//simpleMesh.vertexList[j].Pos.z = (float)vert.mData[2] / 50.0f;
 				
 				simpleMesh.vertexList[j].Pos.x = (float)vert.mData[0];
 				simpleMesh.vertexList[j].Pos.y = (float)vert.mData[1];
