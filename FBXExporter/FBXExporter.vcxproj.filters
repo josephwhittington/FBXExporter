@@ -21,8 +21,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="todo.md" />
-    <None Include="readme.md">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
