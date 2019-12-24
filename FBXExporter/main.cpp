@@ -164,7 +164,7 @@ void WriteMesh(std::string texturename, const char* outputname)
 	header = { 0 };
 	header.indexcount = simpleMesh.indicesList.size();
 	header.vertexcount = simpleMesh.vertexList.size();
-	header.indexstart = sizeof(SimpleMesh);
+	header.indexstart = sizeof(MeshHeader);
 	header.vertexstart = header.indexstart + simpleMesh.indicesList.size() * 4;
 	strcpy_s(header.texturename, texturename.c_str());
 
