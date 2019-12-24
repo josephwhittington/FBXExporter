@@ -1,5 +1,7 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
+#include <string>
 
 // FBX includes
 #include <fbxsdk.h>
@@ -43,31 +45,75 @@ struct MeshHeader
 void ProcessFbxMesh(FbxNode* Node, std::string& filename);
 void GrabUvs(FbxMesh* mesh, std::vector<FLOAT2>& tempuv);
 void Compactify();
-void LoadAndWriteMesh(SimpleMesh& simplemesh);
-void WriteMesh(std::string texturename);
+void LoadAndWriteMesh(SimpleMesh& simplemesh, const char* inputname, const char* outputname);
+void WriteMesh(std::string texturename, const char* outputname);
 // Forward declarations
 
 // Global simpleMesh
 SimpleMesh simpleMesh;
 MeshHeader header;
 
+// Global strings
+const char* g_asset_directory = "Assets/";
+
 
 int main(int argc, char** argv)
 {
 	/* CLI args
 	 * 1. FBX filepath
-	 * 2. Output Name
+	 * 2. Output Name (optional)
 	*/
-	LoadAndWriteMesh(simpleMesh);
+
+	// Declare the strings for the arguments
+	std::string importname, outputname;
+
+	// If the first argument doesn't exist, exit early
+	if (argc == 1) {
+		std::cout << "To use the Whittington FBX converter specify an FBX file to convert as a CLI argument";
+		return EXIT_SUCCESS;
+	}
+	// You get to this point so the first argument exists, let's validate that the file is an FBX and it exists
+	importname = argv[1];
+	// Check that the file ends with FBX
+	if (importname.find_last_of(".fbx") == importname.length() - 1)
+	{
+		// File at least ends with FBX, if we can open the MF then that's enough for me
+		std::fstream f(importname);
+		if (!f.is_open())
+		{
+			std::cout << "Error: Couldn't locate file: " << importname;
+			return EXIT_SUCCESS;
+		}
+		// If the file could, open close the file so the program can continue
+		f.close();
+	}
+	// If the second argument wasn't specified use the name of the file
+	if (argc == 2)
+	{
+		outputname = importname.substr(0, importname.find(".fbx"));
+		outputname = outputname.append(".wobj");
+	}
+	else
+	{
+		// If the file already has a .wobj extension in the filepath then I don't need to add the extension
+		// Otherwise I do
+		outputname = argv[2];
+		if (outputname.find(".wobj") == std::string::npos)
+			outputname.append(".wobj");
+	}
+
+	LoadAndWriteMesh(simpleMesh, importname.c_str(), outputname.c_str());
 
 	return EXIT_SUCCESS;
 }
 
-void LoadAndWriteMesh(SimpleMesh& simplemesh)
+void LoadAndWriteMesh(SimpleMesh& simplemesh, const char* inputname, const char* outputname)
 {
+	std::cout << inputname << "\n" << outputname << "\n";
+
 	// FBX SHIT
 	// Change the following filename to a suitable filename value.
-	const char* lFilename = "table.fbx";
+	//const char* lFilename = "table.fbx";
 
 	// Initialize the SDK manager. This object handles all our memory management.
 	FbxManager* lSdkManager = FbxManager::Create();
@@ -80,7 +126,7 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh)
 	FbxImporter* lImporter = FbxImporter::Create(lSdkManager, "Bruh");
 
 	// Use the first argument as the filename for the importer.
-	if (!lImporter->Initialize(lFilename, -1, lSdkManager->GetIOSettings())) {
+	if (!lImporter->Initialize(inputname, -1, lSdkManager->GetIOSettings())) {
 		printf("Call to FbxImporter::Initialize() failed.\n");
 		printf("Error returned: %s\n\n", lImporter->GetStatus().GetErrorString());
 		exit(-1);
@@ -101,7 +147,7 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh)
 
 
 	// Fix filename
-	std::string folder = "Assets/";
+	std::string folder = g_asset_directory;
 	int start = filename.find_last_of("\\") + 1;
 	int end = filename.find_last_of(".");
 
@@ -111,13 +157,13 @@ void LoadAndWriteMesh(SimpleMesh& simplemesh)
 
 	// FBX SHIT
 
-	WriteMesh(filename);
+	WriteMesh(filename, outputname);
 }
 
-void WriteMesh(std::string texturename)
+void WriteMesh(std::string texturename, const char* outputname)
 {
-	const char* filepath = "mesh.mesh";
-	std::ofstream file(filepath, std::ios::trunc | std::ios::binary | std::ios::out);
+	//const char* filepath = "mesh.mesh";
+	std::ofstream file(outputname, std::ios::trunc | std::ios::binary | std::ios::out);
 
 	// Fill out Header
 	header = { 0 };
