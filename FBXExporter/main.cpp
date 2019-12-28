@@ -211,7 +211,9 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 				int textureCount = diffuseTexture.GetSrcObjectCount<FbxTexture>();
 				FbxFileTexture* texture = FbxCast<FbxFileTexture>(diffuseTexture.GetSrcObject<FbxFileTexture>(0));
 
-				filename = texture->GetRelativeFileName();
+				if (texture)
+					filename = texture->GetRelativeFileName();
+				else filename = "default_texture";
 			}
 			// Texture shit
 
