@@ -11,6 +11,10 @@
 // Structures
 //--------------------------------------------------------------------------------------
 
+// Link
+// https://forums.autodesk.com/t5/fbx-forum/resolved-blendshape-deformation-in-examples-viewscene/td-p/4248397
+// Link
+
 struct FLOAT3
 {
 	float x, y, z;
@@ -31,6 +35,7 @@ struct SimpleMesh
 {
 	std::vector<SimpleVertex> vertexList;
 	std::vector<int> indicesList;
+	std::vector<FLOAT3> blend_positions;
 };
 
 // Mesh header struct
@@ -42,6 +47,7 @@ struct MeshHeader
 };
 
 // Forward declarations
+void ProcessAnimationData(FbxMesh* lMesh);
 void ProcessFbxMesh(FbxNode* Node, std::string& filename);
 void GrabUvs(FbxMesh* mesh, std::vector<FLOAT2>& tempuv);
 void Compactify();
@@ -175,7 +181,47 @@ void WriteMesh(std::string texturename, const char* outputname)
 	// Write the Vertices
 	file.write((const char*)simpleMesh.vertexList.data(), simpleMesh.vertexList.size() * (size_t)sizeof(SimpleVertex));
 
+	// Write the thing
+	file.write((const char*)simpleMesh.blend_positions.data(), simpleMesh.blend_positions.size() * (size_t)sizeof(FLOAT3));
+
 	file.close();
+}
+
+void ProcessAnimationData(FbxMesh* lMesh)
+{
+	int vertex_count = lMesh->GetControlPointsCount();
+	int deformer_count = lMesh->GetDeformerCount(FbxDeformer::eBlendShape);
+
+	FbxDeformer* deformer = lMesh->GetDeformer(0);
+
+	if (deformer->Is<FbxBlendShape>())
+	{
+		FbxBlendShape* blendShape = FbxCast<FbxBlendShape>(deformer);
+
+		if (blendShape->GetBlendShapeChannelCount() > 0)
+		{
+			FbxBlendShapeChannel* channel =  blendShape->GetBlendShapeChannel(0);
+
+			FbxShape* shape = channel->GetTargetShape(0);
+
+			simpleMesh.blend_positions.resize(vertex_count);
+
+			for (int i = 0; i < vertex_count; i++)
+			{
+				FLOAT3 flt;
+				FbxVector4 pos = lMesh->GetControlPointAt(i);
+				FbxVector4 cp = (shape->GetControlPoints()[i] - pos) * channel->GetTargetShapeFullWeights()[i];
+				FbxVector4 temp = shape->GetControlPoints()[i];
+				pos += cp;
+				flt.x = temp.mData[0];
+				flt.y = temp.mData[1];
+				flt.z = temp.mData[2];
+				simpleMesh.blend_positions[i] = flt;
+			}
+		}
+	}
+
+	std::cout << "bru";
 }
 
 void ProcessFbxMesh(FbxNode* Node, std::string& filename)
@@ -191,6 +237,9 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 		FbxMesh* mesh = childNode->GetMesh();
 		if (mesh != NULL)
 		{
+			// Animation shit
+			ProcessAnimationData(mesh);
+
 			std::cout << "\nMesh:" << childNode->GetName();
 
 			// Get index count from mesh
@@ -256,6 +305,9 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 			std::vector<SimpleVertex> vertexListExpanded;
 			vertexListExpanded.resize(numIndices);
 
+			std::vector<FLOAT3> blend_mesh_expanded;
+			blend_mesh_expanded.resize(numIndices);
+
 			// align (expand) vertex array and set the normals
 			SimpleVertex simp;
 			for (int j = 0; j < numIndices; j++)
@@ -271,6 +323,9 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 				simp.Tex.x = tempuv[j].x;
 				simp.Tex.y = tempuv[j].y;
 				// UV SHIT
+
+				// Blend position
+				blend_mesh_expanded[j] = simpleMesh.blend_positions[simpleMesh.indicesList[j]];
 
 				vertexListExpanded[j] = simp;
 			}
@@ -288,8 +343,9 @@ void ProcessFbxMesh(FbxNode* Node, std::string& filename)
 				// copy working data to the global SimpleMesh
 				simpleMesh.indicesList.assign(indicesList.begin(), indicesList.end());
 				simpleMesh.vertexList.assign(vertexListExpanded.begin(), vertexListExpanded.end());
+				simpleMesh.blend_positions.assign(blend_mesh_expanded.begin(), blend_mesh_expanded.end());
 
-				Compactify();
+				//Compactify();
 
 				// print out some stats
 				std::cout << "\nindex count BEFORE/AFTER compaction " << numIndices;
